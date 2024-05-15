@@ -1,13 +1,15 @@
-import os
-from pathlib import Path
-from pyfaidx import Fasta
-import torch
-import shutil
-import gzip
-import random
-from typing import Optional, Union, Dict, List
-from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer
 import collections
+import gzip
+import os
+import random
+import shutil
+from pathlib import Path
+from typing import Dict, List, Optional, Union
+
+import torch
+from pyfaidx import Fasta
+
+from src.dataloaders.datasets.species_char_tokenizer import CharacterTokenizer
 
 """
 Dataset that randomly samples sequences of length (X) from a species' whole genome.
@@ -26,54 +28,15 @@ No augmentations yet.
 """
 
 # Determine chromosomes to use for train/test split
+# These are maintained here just as examples of how to format
 SPECIES_CHROMOSOME_SPLITS = {
     'human' : {
         'train' : [ '2', '4', '6', '8','14', '15', '16', '17', '18', '19', '20', '21', '22', 'X', 'Y', ],
         'valid' : ['1', '3', '12', '13',],
         'test' : [ '5', '7', '9', '10', '11',],
     },
-    'lemur' : {
-        'train' : [ '2', '4', '6', '8','14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', 'X', 'Y', ],
-        'valid' : ['1', '3', '12', '13',],
-        'test' : [ '5', '7', '9', '10', '11',],
-    },
-    'goat' : {
-        'train' : [ '2', '4', '6', '8','14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', 'X', 'Y', ],
-        'valid' : ['1', '3', '12', '13',],
-        'test' : [ '5', '7', '9', '10', '11',],
-    },
-    'sheep' : {
-        'train' : [ '2', '4', '6', '8','14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', 'X', 'Y', ],
-        'valid' : ['1', '3', '12', '13',],
-        'test' : [ '5', '7', '9', '10', '11',],
-    },
-    'pig' : {
-        'train' : [ '2', '4', '6', '8','14', '15', '16', '17', '18', 'X', 'Y', ],
-        'valid' : ['1', '3', '12', '13',],
-        'test' : [ '5', '7', '9', '10', '11',],
-    },
     'mouse' : {
         'train' : [ '2', '4', '6', '8', '14', '15', '16', '17', '18', '19', 'X', ],
-        'valid' : ['1', '3', '12', '13',],
-        'test' : [ '5', '7', '9', '10', '11',],
-    },
-    'gorilla' : {
-        'train' : [ '2A', '2B', '4', '6', '8', '14', '15', '16', '17', '18', '19', '20', '21', '22', 'X', 'Y', ],
-        'valid' : ['1', '3', '12', '13',],
-        'test' : [ '5', '7', '9', '10', '11',],
-    },
-    'orangutan' : {
-        'train' : [ '2A', '2B', '4', '6', '8', '14', '15', '16', '17', '18', '19', '20', '21', '22', 'X', 'Y', ],
-        'valid' : ['1', '3', '12', '13',],
-        'test' : [ '5', '7', '9', '10', '11',],
-    },
-    'chimpanzee' : {
-        'train' : [ '2A', '2B', '4', '6', '8', '14', '15', '16', '17', '18', '19', '20', '21', '22', 'X', 'Y', ],
-        'valid' : ['1', '3', '12', '13',],
-        'test' : [ '5', '7', '9', '10', '11',],
-    },
-    'hippo' : {
-        'train' : [ '2', '4', '6', '8', '14', '15', '16', '17', 'X', ],
         'valid' : ['1', '3', '12', '13',],
         'test' : [ '5', '7', '9', '10', '11',],
     }

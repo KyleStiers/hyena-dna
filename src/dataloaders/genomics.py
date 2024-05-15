@@ -2,23 +2,29 @@
 # Adapted from https://github.com/HazyResearch/flash-attention/blob/main/training/src/datamodules/language_modeling_hf.py
 from pathlib import Path
 from typing import Any, List, Union
+
+from datasets import Dataset
 from torch.utils.data.dataloader import DataLoader, Dataset
 from transformers import AutoTokenizer
-from datasets import Dataset
 
 from src.dataloaders.base import SequenceDataset, default_data_path
-from src.dataloaders.fault_tolerant_sampler import RandomFaultTolerantSampler
-from src.dataloaders.fault_tolerant_sampler import FaultTolerantDistributedSampler
-# genomics datasets
-from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer
-from src.dataloaders.datasets.hg38_dataset import HG38Dataset
-from src.dataloaders.datasets.genomic_bench_dataset import GenomicBenchmarkDataset
-from src.dataloaders.datasets.nucleotide_transformer_dataset import NucleotideTransformerDataset
 from src.dataloaders.datasets.chromatin_profile_dataset import ChromatinProfileDataset
-from src.dataloaders.datasets.species_dataset import SpeciesDataset
-from src.dataloaders.datasets.icl_genomics_dataset import ICLGenomicsDataset
-from src.dataloaders.datasets.hg38_fixed_dataset import HG38FixedDataset
+from src.dataloaders.datasets.generic_dataset import GenericDataset
 
+# from src.dataloaders.datasets.genomic_bench_dataset import GenomicBenchmarkDataset
+from src.dataloaders.datasets.generic_fixed_dataset import GenericFixedDataset
+
+# from src.dataloaders.datasets.icl_genomics_dataset import ICLGenomicsDataset
+# from src.dataloaders.datasets.nucleotide_transformer_dataset import (
+#     NucleotideTransformerDataset,
+# )
+# genomics datasets
+from src.dataloaders.datasets.species_char_tokenizer import CharacterTokenizer
+from src.dataloaders.datasets.species_dataset import SpeciesDataset
+from src.dataloaders.fault_tolerant_sampler import (
+    FaultTolerantDistributedSampler,
+    RandomFaultTolerantSampler,
+)
 
 """
 
@@ -26,7 +32,7 @@ Dataloaders for genomics datasets, including pretraining and downstream tasks.  
 
 """
 
-class HG38(SequenceDataset):
+class GenericOrganism(SequenceDataset):
     """
     Base class, other dataloaders can inherit from this class.
 
@@ -125,7 +131,7 @@ class HG38(SequenceDataset):
     
         # Create all splits: torch datasets
         self.dataset_train, self.dataset_val, self.dataset_test = [
-            HG38Dataset(split=split,
+            GenericDataset(split=split,
                         bed_file=self.bed_file,
                         fasta_file=self.fasta_file,
                         max_length=max_len,
@@ -152,7 +158,7 @@ class HG38(SequenceDataset):
                             'chrX': [2825622, 144342320],
                             }
 
-            self.dataset_val = HG38FixedDataset(
+            self.dataset_val = GenericFixedDataset(
                 chr_ranges=chr_ranges,
                 fasta_file=self.fasta_file,
                 max_length=self.max_length,
@@ -215,7 +221,7 @@ class HG38(SequenceDataset):
         # At this point the train loader hasn't been constructed yet
 
 
-class GenomicBenchmark(HG38):
+class GenomicBenchmark(GenericOrganism):
     _name_ = "genomic_benchmark"
     l_output = 0  # need to set this for decoder to work correctly
 
@@ -298,7 +304,7 @@ class GenomicBenchmark(HG38):
         return self._data_loader(self.dataset_val, batch_size=self.batch_size_eval)
 
 
-class NucleotideTransformer(HG38):
+class NucleotideTransformer(GenericOrganism):
     _name_ = "nucleotide_transformer"
     l_output = 0  # need to set this for decoder to work correctly
 
@@ -387,7 +393,7 @@ class NucleotideTransformer(HG38):
         return self._data_loader(self.dataset_val, batch_size=self.batch_size_eval, shuffle=self.shuffle_eval)
 
 
-class ChromatinProfile(HG38):
+class ChromatinProfile(GenericOrganism):
     _name_= 'chromatin_profile'
     l_output = 0  # need to set this for decoder to work correctly for seq level
     def __init__(self, data_path, ref_genome_path, ref_genome_version=None,
@@ -461,7 +467,7 @@ class ChromatinProfile(HG38):
         ]
 
 
-class Species(HG38):
+class Species(GenericOrganism):
     _name_ = "species"
     l_output = 0  # need to set this for decoder to work correctly
 
@@ -569,7 +575,7 @@ class Species(HG38):
         return
     
 
-class ICLGenomics(HG38):
+class ICLGenomics(GenericOrganism):
     _name_ = "icl_genomics"
     l_output = 0  # need to set this for decoder to work correctly
 
@@ -657,7 +663,7 @@ class ICLGenomics(HG38):
         return self._data_loader(self.dataset_val, batch_size=self.batch_size_eval)
 
 
-class HG38Fixed(HG38):
+class GenericFixed(GenericOrganism):
     _name_ = "hg38_fixed"
 
     """Just used for testing a fixed length, *non-overlapping* dataset for HG38."""
@@ -709,7 +715,7 @@ class HG38Fixed(HG38):
         )
 
         # we only need one
-        self.dataset_train = HG38FixedDataset(
+        self.dataset_train = GenericFixedDataset(
             fasta_file=self.fasta_file,
             chr_ranges=self.chr_ranges,  # a dict of chr: (start, end) to use for test set
             max_length=self.max_length,

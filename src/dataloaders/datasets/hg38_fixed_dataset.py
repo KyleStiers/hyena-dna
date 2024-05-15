@@ -1,7 +1,7 @@
 from pathlib import Path
-from pyfaidx import Fasta
-import torch
 
+import torch
+from pyfaidx import Fasta
 
 """
 Just a fixed length dataset for 2 test chromosomes, to ensure the test set is the same.

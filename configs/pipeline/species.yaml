@@ -3,18 +3,18 @@ defaults:
   - /trainer: default
   - /loader: default
   - /dataset: species
-  - /task: multiclass_classification
   - /optimizer: adamw
-  - /scheduler: plateau
+  - /scheduler: cosine_warmup
   - /callbacks: [base, checkpoint]
 
 train:
-  monitor: val/accuracy # Needed for plateau scheduler
-  mode: max
+  monitor: test/loss
+  mode: min
 
-encoder: id
+task:
+  _name_: lm
+  loss: cross_entropy
+  torchmetrics: ['perplexity', 'num_tokens']
 
-# we need this for classification!
-decoder:
-  _name_: sequence
-  mode: pool
+encoder: null
+decoder: null
